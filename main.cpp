@@ -6,6 +6,7 @@ using namespace std;
 
 int main () {
     vector<Expense> expenses;
+    vector<Expense>* expenses_ptr = &expenses;
     while (true) {
         cout << "Please enter a operation: ";
         string operation;
@@ -17,8 +18,10 @@ int main () {
         else if (operation == "add"){
             
             cout << "Adding expenses..." << endl;
-            add_expense_prompt(expenses);
-            save_expenses_to_file(expenses);
+            add_expense_prompt(expenses_ptr);
+            cout << "Expenses added." << endl;
+            cout << expenses_ptr << endl;
+            save_expenses_to_file(expenses_ptr);
         }
         else if (operation == "total") {
             cout << "Calculating total expenses..." << endl;

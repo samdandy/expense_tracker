@@ -29,18 +29,25 @@ class Expense {
 
 
 void add_file_header(const string& file_name) {
-        file.open(file_name, ios::out | ios::app);
+    // First, check if file exists and has header by opening in read mode
+    file.open(file_name, ios::in);
+    if (file.is_open()) {
         getline(file, header_line);
-        if (header_line == "Name,Date,Amount") {
-            file.close();
-            return;
-        }
-        if (!file.is_open()) {
-                    throw runtime_error("Failed to open file");
-                }
-        file << "Name,Date,Amount" << endl;
         file.close();
+        if (header_line == "Name,Date,Amount") {
+            return; // Header already exists
+        }
     }
+    
+    // If we get here, either file doesn't exist or doesn't have header
+    // Open in append mode and add header
+    file.open(file_name, ios::out | ios::app);
+    if (!file.is_open()) {
+        throw runtime_error("Failed to open file");
+    }
+    file << "Name,Date,Amount" << endl;
+    file.close();
+}
 
 void add_to_file(const string& file_name, const Expense& expense) {
         file.open(file_name, ios::out | ios::app);
@@ -86,7 +93,7 @@ void total_expenses() {
     }
 
 
-void add_expense_prompt(vector<Expense>& expenses) {
+void add_expense_prompt(vector<Expense>* expenses_ptr) {
         while (true) {
             string name;
             string date;
@@ -101,18 +108,18 @@ void add_expense_prompt(vector<Expense>& expenses) {
             cout << "Enter expense amount: ";
             cin >> amount;
             Expense new_expense(name, date, amount);
-            expenses.push_back(new_expense);
+            expenses_ptr->push_back(new_expense);
         }
 }   
 
-void save_expenses_to_file(vector<Expense>& expenses) {
+void save_expenses_to_file(vector<Expense>* expenses_ptr) {
         string file_name = enter_file_name();
         add_file_header(file_name);
-        for (Expense& exp: expenses) {
+        for (Expense& exp: *expenses_ptr) {
             cout << "Expense: " << exp.getName() << ", Date: " << exp.getDate() << ", Amount: $" << exp.getAmount() << endl;
             add_to_file(file_name, exp);
         }
-        expenses.clear();
+        expenses_ptr->clear();
 }
 
 
