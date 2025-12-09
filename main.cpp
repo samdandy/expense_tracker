@@ -2,11 +2,11 @@
 #include <vector>
 #include "Expense.h"
 
+
 using namespace std;
 
 int main () {
     vector<Expense> expenses;
-    vector<Expense>* expenses_ptr = &expenses;
     while (true) {
         cout << "Please enter a operation: ";
         string operation;
@@ -18,14 +18,30 @@ int main () {
         else if (operation == "add"){
             
             cout << "Adding expenses..." << endl;
-            add_expense_prompt(expenses_ptr);
+            add_expense_prompt(expenses);
             cout << "Expenses added." << endl;
-            cout << expenses_ptr << endl;
-            save_expenses_to_file(expenses_ptr);
+            save_expenses_to_file(expenses);
         }
         else if (operation == "total") {
             cout << "Calculating total expenses..." << endl;
-            total_expenses();
+            string file_name = enter_file_name();
+            total_expenses(file_name);
+        }
+        else if (operation == "average") {
+            cout << "Calculating average expense..." << endl;
+            string file_name = enter_file_name();
+            average_expense(file_name);
+        }
+        else if (operation == "max") {
+            cout << "Finding maximum expense..." << endl;
+            string file_name = enter_file_name();
+            max_expense(file_name);
+        }
+        else if (operation == "report") {
+
+            cout << "Generating report..." << endl;
+            string file_name = enter_file_name();
+            run_report(file_name);
         }
         else {
             cout << "Invalid operation." << endl;
