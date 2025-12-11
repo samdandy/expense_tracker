@@ -6,6 +6,7 @@
 #include <thread>
 #include <vector>
 #include <mutex>
+#include <sstream>
 
 using namespace std;
 
@@ -41,7 +42,8 @@ void add_file_header(const string& file_name) {
     
     file.open(file_name, ios::out | ios::app);
     if (!file.is_open()) {
-        throw runtime_error("Failed to open file");
+          cout << "Failed to open file for writing" << endl;
+        return;
     }
     file << "Name,Date,Amount" << endl;
     file.close();
@@ -53,10 +55,23 @@ void add_to_file(const string& file_name, const Expense& expense) {
     
     file.open(file_name, ios::out | ios::app);
     if (!file.is_open()) {
-        throw runtime_error("Failed to open file");
+          cout << "Failed to open file for writing" << endl;
+        return;
     }
-    file << expense.get_name() << "," << expense.get_date() << "," << expense.get_amount() << endl;
+    file << expense.get_name() << "," << expense.get_date() << "," << to_string(expense.get_amount()) << endl;
     file.close();
+}
+
+vector<string> split(const string& str, char delimiter) {
+    vector<string> tokens;
+    stringstream ss(str);
+    string token;
+    
+    while (getline(ss, token, delimiter)) {
+        tokens.push_back(token);
+    }
+    
+    return tokens;
 }
 
 double parse_amount(const string& line) {
@@ -80,7 +95,8 @@ void total_expenses(const string& file_name) {
     
     file.open(file_name, ios::in);
     if (!file.is_open()) {
-        throw runtime_error("Failed to open file");
+          cout << "Failed to open file for reading" << endl;
+        return;
     }
     
     getline(file, header_line);
@@ -104,7 +120,8 @@ void average_expense(const string& file_name) {
     
     file.open(file_name, ios::in);
     if (!file.is_open()) {
-        throw runtime_error("Failed to open file");
+          cout << "Failed to open file for reading" << endl;
+        return;
     }
     
     getline(file, header_line);
@@ -135,7 +152,8 @@ void max_expense(const string& file_name) {
     
     file.open(file_name, ios::in);
     if (!file.is_open()) {
-        throw runtime_error("Failed to open file");
+          cout << "Failed to open file for reading" << endl;
+        return;
     }
     
     getline(file, header_line);
@@ -168,7 +186,12 @@ void add_expense_prompt(vector<Expense>& expenses) {
         cout << "Enter expense date: ";
         cin >> date;
         cout << "Enter expense amount: ";
-        cin >> amount;
+        if (!(cin >> amount)) {
+            cout << "Invalid amount! Restart expense entry with a valid number.\n";
+            cin.clear();                 
+            cin.ignore(10000, '\n');        
+            continue;                      
+        }
         expenses.emplace_back(name, date, amount);  
     }
 }   
@@ -194,6 +217,189 @@ void run_report(const string& file_name) {
     
     for (thread& t : report_threads) {
         t.join();
+    }
+}
+
+void update_expense(vector<Expense>& expenses, const string& file_name){
+    fstream file;
+    file.open(file_name, ios::in);
+    if (!file.is_open()) {
+        cout << "Failed to open file for reading" << endl;
+        return;
+    }
+    
+    string header_line;
+    vector<string> updated_lines;
+    
+    getline(file, header_line);
+    updated_lines.push_back(header_line); 
+    
+    string line;
+    while (getline(file, line)) {
+        vector<string> vals = split(line, ',');
+        
+        if (vals.size() == 3) {  
+            string name = vals[0];
+            string date = vals[1];
+            
+            bool found = false;
+            for (const Expense& exp : expenses) {
+                if (exp.get_name() == name && exp.get_date() == date) {
+                    line = name + "," + date + "," + to_string(exp.get_amount());
+                    break;
+                }
+            }
+        }
+        
+        updated_lines.push_back(line);
+    }
+    file.close();
+    
+   
+    file.open(file_name, ios::out);
+    if (!file.is_open()) {  
+        throw runtime_error("Failed to open file for writing");
+    }
+    
+    for (const string& updated_line : updated_lines) {
+        file << updated_line << endl;
+    }
+    file.close();
+}
+
+void delete_expense(const string& file_name, vector<Expense>& expenses){
+    fstream file;
+    file.open(file_name, ios::in);
+    if (!file.is_open()) {
+        cout << "Failed to open file for reading" << endl;
+        return;
+    }
+    
+    string header_line;
+    vector<string> updated_lines;
+    
+    getline(file, header_line);
+    updated_lines.push_back(header_line); 
+    
+    string line;
+    while (getline(file, line)) {
+        vector<string> vals = split(line, ',');
+        
+        if (vals.size() == 3) {  
+            string name = vals[0];
+            string date = vals[1];
+            
+            bool to_delete = false;
+            for (const Expense& exp : expenses) {
+                if (exp.get_name() == name && exp.get_date() == date) {
+                    to_delete = true;
+                    break;
+                }
+            }
+            if (to_delete) {
+                continue; 
+            }
+        }
+        
+        updated_lines.push_back(line);
+    }
+    file.close();
+    
+   
+    file.open(file_name, ios::out);
+    if (!file.is_open()) {  
+        cout << "Failed to open file for writing" << endl;
+        return;
+    }
+    
+    for (const string& updated_line : updated_lines) {
+        file << updated_line << endl;
+    }
+    file.close();
+}
+
+
+void max_task(){
+   cout << "Finding maximum expense..." << endl;
+            string file_name = enter_file_name();
+            max_expense(file_name);
+}
+void add_task(){
+    vector<Expense> expenses;
+    cout << "Adding expenses..." << endl;
+            add_expense_prompt(expenses);
+            cout << "Expenses added." << endl;
+            save_expenses_to_file(expenses);
+}
+void update_task(){
+    vector<Expense> expenses;
+    cout << "Updating expenses..." << endl;
+            add_expense_prompt(expenses);
+            string file_name = enter_file_name();
+            update_expense(expenses, file_name);
+            cout << "Expenses updated." << endl;
+}
+
+void total_task(){
+    cout << "Calculating total expenses..." << endl;
+            string file_name = enter_file_name();
+            total_expenses(file_name);
+}
+
+void average_task(){
+    cout << "Calculating average expense..." << endl;
+            string file_name = enter_file_name();
+            average_expense(file_name);
+}
+
+void report_task(){
+    cout << "Generating expense report..." << endl;
+            string file_name = enter_file_name();
+            run_report(file_name);
+}
+
+void delete_task(){
+    vector<Expense> expenses;
+    cout << "Deleting expenses..." << endl;
+            add_expense_prompt(expenses);
+            string file_name = enter_file_name();
+            delete_expense(file_name, expenses);
+            cout << "Expenses deleted." << endl;
+}
+
+void main_task(){
+    while (true) {
+        cout << "Please enter a operation: ";
+        string operation;
+        cin >> operation;
+        if (operation == "exit" || operation == "quit") {
+            cout << "Goodbye!" << endl;
+            break; 
+        }
+        else if (operation == "add"){
+            add_task();
+        }
+        else if (operation == "update") {
+            update_task();
+        }
+        else if (operation == "delete") {
+            delete_task();
+        }
+        else if (operation == "total") {
+            total_task();
+        }
+        else if (operation == "average") {
+           average_task();
+        }   
+        else if (operation == "max") {
+            max_task();
+        }
+        else if (operation == "report") {
+            report_task();
+        }
+        else {
+            cout << "Invalid operation." << endl;
+        }
     }
 }
 
