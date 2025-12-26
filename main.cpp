@@ -9,6 +9,5 @@ using namespace std;
 
 int main() {
   expense_tracker();
-
   return 0;
 }

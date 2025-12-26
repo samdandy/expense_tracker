@@ -4,10 +4,9 @@
 #include <string>
 
 #include <fstream>
-
+#include <future>
 #include <iostream>
 
-#include <thread>
 
 #include <vector>
 
@@ -205,14 +204,12 @@ void save_expenses_to_file(vector < Expense > & expenses,
 }
 
 void run_report(const string & file_name) {
-  vector < thread > report_threads;
-
-  report_threads.emplace_back(total_expenses, ref(file_name));
-  report_threads.emplace_back(average_expense, ref(file_name));
-  report_threads.emplace_back(max_expense, ref(file_name));
-
-  for (thread & t: report_threads) {
-    t.join();
+  vector<future<void>> futures;
+  futures.push_back(async(launch::async,total_expenses, file_name));
+  futures.push_back(async(launch::async,average_expense, file_name));
+  futures.push_back(async(launch::async,max_expense, file_name));
+  for (auto& f : futures){
+    f.get();
   }
 }
 void update_expense(vector < Expense > & expenses,
